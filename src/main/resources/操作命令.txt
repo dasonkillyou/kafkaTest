@@ -1,0 +1,39 @@
+## connect∆Ù∂Ø√¸¡Ó
+bin/connect-distributed.sh -daemon config/connect-distributed.properties
+bin/connect-distributed.sh config/connect-distributed.properties
+
+
+http://192.168.220.128:8083/connector-plugins
+
+http://192.168.220.128:8083/connectors
+
+
+curl -X POST -H 'Content-Type: application/json' -i 'http://192.168.220.128:8083/connectors' \
+--data \
+'{"name":"imooc-upload-mysql","config":{
+"connector.class":"io.confluent.connect.jdbc.JdbcSourceConnector",
+"connection.url":"jdbc:mysql://192.168.0.104:3306/kafka_study?user=root&password=123456",
+"table.whitelist":"users",
+"incrementing.column.name": "uuid",
+"mode":"incrementing",
+"topic.prefix": "imooc-mysql-"}}'
+
+bin/kafka-console-consumer.sh --bootstrap-server 192.168.220.128:9092 --topic imooc-mysql-users --from-beginning
+
+curl -X POST -H 'Content-Type: application/json' -i 'http://192.168.220.128:8083/connectors' \
+--data \
+'{"name":"imooc-download-mysql","config":{
+"connector.class":"io.confluent.connect.jdbc.JdbcSinkConnector",
+"connection.url":"jdbc:mysql://192.168.0.104:3306/kafka_study?user=root&password=123456",
+"topics":"imooc-mysql-users",
+"auto.create":"false",
+"insert.mode": "upsert",
+"pk.mode":"record_value",
+"pk.fields":"uuid",
+"table.name.format": "users_bak"}}'
+
+
+bin/kafka-console-consumer.sh --bootstrap-server 192.168.220.128:9092 --topic test-mysql-jdbc-users --from-beginning
+
+
+curl -X DELETE -i 'http://192.168.220.128:8083/connectors/load-mysql-data'
